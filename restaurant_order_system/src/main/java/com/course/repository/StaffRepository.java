@@ -8,4 +8,5 @@ import com.course.entity.StaffEntity;
 @Repository
 public interface StaffRepository extends JpaRepository<StaffEntity, Long>{
 
+	StaffEntity findByUsernameAndPassword(String username,String password);
 }
