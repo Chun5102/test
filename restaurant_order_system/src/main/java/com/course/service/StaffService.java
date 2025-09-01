@@ -1,9 +1,14 @@
 package com.course.service;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.course.entity.StaffEntity;
+import com.course.model.ApiResponse;
 import com.course.model.StaffVo;
 import com.course.repository.StaffRepository;
 
@@ -18,28 +23,88 @@ public class StaffService {
 	@Autowired
 	private StaffServiceHelper helper;
 	
-	public StaffVo staffLogin(String username,String password)
+	public ApiResponse<StaffVo> staffLogin(String username,String password)
 	{		
 		StaffEntity staffEntity=staffRepository.findByUsernameAndPassword(username, password);
 		if(staffEntity!=null)
 		{
-			return helper.convertToVo(staffEntity);
+			return ApiResponse.success(helper.convertToVoNoPassword(staffEntity));
 		}
 		else 
 		{
-			return null;
+			return ApiResponse.error("401","登入失敗");
 		}
 	}
 	
 	@Transactional
-	public void addStaff(StaffVo vo)
+	public ApiResponse<String> addStaff(StaffVo vo)
 	{
-		StaffEntity staffEntity=new StaffEntity();
-		staffEntity.setName(vo.getName());
-		staffEntity.setUsername(vo.getUsername());
-		staffEntity.setPassword(vo.getPassword());
-		staffEntity.setRole(vo.getRole());
+		if(!staffRepository.existsByUsername(vo.getUsername()))
+		{
+			StaffEntity staffEntity=new StaffEntity();
+			staffEntity.setName(vo.getName());
+			staffEntity.setUsername(vo.getUsername());
+			staffEntity.setPassword(vo.getPassword());
+			staffEntity.setRole(vo.getRole());
+			
+			staffRepository.save(staffEntity);
+			
+			return ApiResponse.success("員工新增成功");
+		}
+		else
+		{
+			return ApiResponse.error("401","已有此帳號");
+		}
+	}
+	
+	@Transactional
+	public ApiResponse<String> updateStaff(StaffVo vo)
+	{	
+		Optional<StaffEntity> staffEntityOp=staffRepository.findById(vo.getId());
+		if(staffEntityOp.isPresent())
+		{
+			StaffEntity staffEntity=staffEntityOp.get();
+			staffEntity.setName(vo.getName());
+			staffEntity.setPassword(vo.getPassword());
+			staffEntity.setRole(vo.getRole());
+			
+			staffRepository.save(staffEntity);
+			return ApiResponse.success("員工修改成功");
+		}
+		return ApiResponse.error("401","修改失敗");			
+	} 
+	
+	public ApiResponse<String> deleteStaff(Long id)
+	{
+		Optional<StaffEntity> staffEntityOp=staffRepository.findById(id);
 		
-		staffRepository.save(staffEntity);
+		if(staffEntityOp.isPresent())
+		{
+			staffRepository.deleteById(id);
+			return ApiResponse.success("員工刪除成功");
+		}
+		return ApiResponse.error("401","刪除失敗");	
+	}
+	
+	public ApiResponse<StaffVo> staffFindById(Long id)
+	{
+		Optional<StaffEntity> staffEntityOp=staffRepository.findById(id);
+		if(staffEntityOp.isPresent())
+		{			
+			return ApiResponse.success(helper.convertToVo(staffEntityOp.get()));
+		}
+		return ApiResponse.error("401","搜索失敗");
+	}
+	
+	public ApiResponse<List<StaffVo>> staffFindByName(String name)
+	{
+		List<StaffEntity> staffEntityList=staffRepository.findByNameLike("%"+name+"%");
+		if(!staffEntityList.isEmpty())
+		{			
+			return ApiResponse.success(staffEntityList.stream().map(staffEntity -> {
+				return helper.convertToVo(staffEntity); 
+			}).collect(Collectors.toList()));
+		}
+		return ApiResponse.error("401","搜索失敗");
 	}
 }
