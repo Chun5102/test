@@ -8,4 +8,5 @@ import com.course.entity.MenuEntity;
 @Repository
 public interface MenuRepository extends JpaRepository<MenuEntity, Long> {
 
+	Boolean existsByName(String name);
 }

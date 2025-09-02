@@ -24,6 +24,8 @@ public class MenuEntity {
 	
 	private BigDecimal price;
 	
+	private String img;
+	
 	private String description;
 	
 	private Short status;
