@@ -27,9 +27,9 @@ public class MenuController {
 	
 	@Operation(summary = "新增菜單資料",tags = "菜單")
 	@PostMapping("/add")
-	public ApiResponse<String> addStaff(@Valid @ModelAttribute MenuVo vo,@RequestParam("file") MultipartFile image) throws IOException
+	public ApiResponse<String> addStaff(@Valid @ModelAttribute MenuVo vo) throws IOException
 	{		
-		return menuService.addMenu(vo,image);
+		return menuService.addMenu(vo);
 	}
 
 }

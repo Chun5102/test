@@ -27,7 +27,7 @@ public class MenuService {
 	private MenuRepository menuRepository;
 	
 	@Transactional
-	public ApiResponse<String> addMenu(MenuVo vo,MultipartFile image) throws IOException
+	public ApiResponse<String> addMenu(MenuVo vo) throws IOException
 	{
 		if(!menuRepository.existsByName(vo.getName()))
 		{
@@ -40,7 +40,7 @@ public class MenuService {
 			
 			menuRepository.save(menuEntity);
 			
-			menuEntity.setImg(saveImage(image,menuEntity.getId()));
+			menuEntity.setImg(saveImage(vo.getImage(),menuEntity.getId()));
 			
 			menuRepository.save(menuEntity);
 			

@@ -24,6 +24,8 @@ public class MenuVo {
 	
 	private String img;
 	
+	private MultipartFile image;
+	
 	private String description;
 	
 	@NotNull
