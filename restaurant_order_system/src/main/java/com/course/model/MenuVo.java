@@ -17,7 +17,7 @@ public class MenuVo {
 	@NotNull
 	private String name;
 	
-	private String type;
+	private Short type;
 	
 	@NotNull
 	private BigDecimal price;

@@ -1,10 +1,14 @@
 package com.course.service;
 
+import java.awt.Menu;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +18,7 @@ import com.course.entity.MenuEntity;
 import com.course.entity.StaffEntity;
 import com.course.model.ApiResponse;
 import com.course.model.MenuVo;
+import com.course.model.StaffVo;
 import com.course.repository.MenuRepository;
 
 import jakarta.transaction.Transactional;
@@ -21,10 +26,13 @@ import jakarta.transaction.Transactional;
 @Service
 public class MenuService {
 
-	private static final String UPLOAD_DIR = "/Users/static";
+	private static final String UPLOAD_DIR = "/Users/evera/static";
 	
 	@Autowired
 	private MenuRepository menuRepository;
+	
+	@Autowired
+	private ServiceHelper helper;
 	
 	@Transactional
 	public ApiResponse<String> addMenu(MenuVo vo) throws IOException
@@ -40,7 +48,10 @@ public class MenuService {
 			
 			menuRepository.save(menuEntity);
 			
-			menuEntity.setImg(saveImage(vo.getImage(),menuEntity.getId()));
+			if(vo.getImage() != null)
+			{
+				menuEntity.setImg(saveImage(vo.getImage(),menuEntity.getId()));
+			}				
 			
 			menuRepository.save(menuEntity);
 			
@@ -52,6 +63,87 @@ public class MenuService {
 		}
 	}
 	
+	@Transactional
+	public ApiResponse<String> updateMenu(MenuVo vo) throws IOException
+	{
+		Optional<MenuEntity> menuEntityOp=menuRepository.findById(vo.getId());
+		if(menuEntityOp.isPresent())
+		{
+			MenuEntity menuEntity=menuEntityOp.get();
+			menuEntity.setName(vo.getName());
+			menuEntity.setType(vo.getType());
+			menuEntity.setPrice(vo.getPrice());
+			menuEntity.setDescription(vo.getDescription());
+			menuEntity.setStatus(vo.getStatus());
+			if(vo.getImg() == null && vo.getImage() != null)
+			{
+				menuEntity.setImg(saveImage(vo.getImage(),vo.getId()));
+			}	
+			else if(vo.getImage() != null)
+			{
+				saveImage(vo.getImage(),vo.getId());
+			}
+			
+			menuRepository.save(menuEntity);
+			
+			return ApiResponse.success("菜單更新成功");
+		}
+		else
+		{
+			return ApiResponse.error("401","無此菜單");
+		}
+	}
+	
+	public ApiResponse<String> deleteMenu(Long id)
+	{
+		Optional<MenuEntity> menuEntityOp=menuRepository.findById(id);
+		if(menuEntityOp.isPresent())
+		{
+			menuRepository.deleteById(id);
+			
+			return ApiResponse.success("菜單刪除成功");
+		}
+		else
+		{
+			return ApiResponse.error("401","無此菜單");
+		}
+	}
+	
+	public ApiResponse<MenuVo> menuFindById(Long id)
+	{
+		Optional<MenuEntity> menuEntityOp=menuRepository.findById(id);
+		if(menuEntityOp.isPresent())
+		{			
+			return ApiResponse.success(helper.menuConvertToVo(menuEntityOp.get()));
+		}
+		return ApiResponse.error("401","搜索失敗");
+	}
+	
+	public ApiResponse<List<MenuVo>> menuFindByName(String name)
+	{
+		List<MenuEntity> menuEntityList=menuRepository.findByNameLike("%"+name+"%");
+		if(!menuEntityList.isEmpty())
+		{			
+			return ApiResponse.success(menuEntityList.stream().map(menuEntity -> {
+				return helper.menuConvertToVo(menuEntity); 
+			}).collect(Collectors.toList()));
+		}
+		return ApiResponse.error("401","搜索失敗");
+	}
+	
+	public ApiResponse<List<MenuVo>> menuFindByType(Short type)
+	{
+		List<MenuEntity> menuEntityList=menuRepository.findByType(type);
+		if(!menuEntityList.isEmpty())
+		{			
+			return ApiResponse.success(menuEntityList.stream().map(menuEntity -> {
+				return helper.menuConvertToVo(menuEntity); 
+			}).collect(Collectors.toList()));
+		}
+		return ApiResponse.error("401","搜索失敗");
+	}
+	
+	//儲存圖片 回傳圖片名
 	private String saveImage(MultipartFile file,Long id) throws IOException 
 	{
 		String originalFileName=file.getOriginalFilename();
@@ -72,6 +164,7 @@ public class MenuService {
 		return newFileName;
 	}
 	
+	//回傳圖片副檔名
 	private String getFileExtension(String fileName) 
 	{
 	    int dotIndex=fileName.lastIndexOf(".");

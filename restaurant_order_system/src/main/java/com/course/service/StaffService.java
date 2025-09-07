@@ -21,14 +21,14 @@ public class StaffService {
 	private StaffRepository staffRepository;
 	
 	@Autowired
-	private StaffServiceHelper helper;
+	private ServiceHelper helper;
 	
 	public ApiResponse<StaffVo> staffLogin(String username,String password)
 	{		
 		StaffEntity staffEntity=staffRepository.findByUsernameAndPassword(username, password);
 		if(staffEntity!=null)
 		{
-			return ApiResponse.success(helper.convertToVoNoPassword(staffEntity));
+			return ApiResponse.success(helper.staffConvertToVoNoPassword(staffEntity));
 		}
 		else 
 		{
@@ -91,7 +91,7 @@ public class StaffService {
 		Optional<StaffEntity> staffEntityOp=staffRepository.findById(id);
 		if(staffEntityOp.isPresent())
 		{			
-			return ApiResponse.success(helper.convertToVo(staffEntityOp.get()));
+			return ApiResponse.success(helper.staffConvertToVo(staffEntityOp.get()));
 		}
 		return ApiResponse.error("401","搜索失敗");
 	}
@@ -102,7 +102,7 @@ public class StaffService {
 		if(!staffEntityList.isEmpty())
 		{			
 			return ApiResponse.success(staffEntityList.stream().map(staffEntity -> {
-				return helper.convertToVo(staffEntity); 
+				return helper.staffConvertToVo(staffEntity); 
 			}).collect(Collectors.toList()));
 		}
 		return ApiResponse.error("401","搜索失敗");

@@ -10,23 +10,19 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 @Entity
-@Table(name="menu")
+@Table(name="morder_item")
 @Data
-public class MenuEntity {
+public class MorderItemEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	
-	private String name;
+	private Long morderId;
 	
-	private Short type;
+	private Long menuId;
 	
-	private BigDecimal price;
+	private Integer quantity;
 	
-	private String img;
-	
-	private String description;
-	
-	private Short status;
+	private BigDecimal subtotal;
 }

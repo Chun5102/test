@@ -1,0 +1,36 @@
+package com.course.model;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import lombok.Data;
+
+@Data
+public class MorderVo {
+	
+	private Long id;
+	
+	private Integer tableNumber;
+	
+	private String morderStatus;
+	
+	@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Date date;
+	
+	private BigDecimal totalPrice;
+	
+	private Short paymentStatus;
+	
+	private List<MorderItemVo> morderItem=new ArrayList<>();
+
+	public MorderVo() {
+		super();
+		this.morderItem = new ArrayList<>();
+	}
+	
+	
+}
