@@ -11,21 +11,23 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 @Entity
-@Table(name="morder")
+@Table(name = "morder")
 @Data
 public class MorderEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
+
+	private String code;
+
 	private Integer tableNumber;
-	
+
 	private String morderStatus;
-	
+
 	private Date date;
-	
+
 	private BigDecimal totalPrice;
-	
+
 	private Short paymentStatus;
 }
