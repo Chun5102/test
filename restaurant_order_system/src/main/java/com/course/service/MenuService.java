@@ -87,7 +87,10 @@ public class MenuService {
 			File file = new File(filePath);
 			file.delete();
 
-			menuRepository.deleteById(id);
+//			menuRepository.deleteById(id);
+			MenuEntity menuEntity = menuEntityOp.get();
+			menuEntity.setStatus((short) 4);
+			menuRepository.save(menuEntity);
 
 			return ApiResponse.success("菜單刪除成功");
 		} else {

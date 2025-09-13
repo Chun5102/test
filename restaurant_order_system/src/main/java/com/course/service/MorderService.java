@@ -1,6 +1,5 @@
 package com.course.service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -101,19 +100,15 @@ public class MorderService {
 		}
 	}
 
-	public ApiResponse<List<MorderVo>> findByTableNumAndPayStatus(String tableNum) {
-		List<MorderEntity> morderEntityList = morderRepository.findByTableNumberAndPaymentStatus(tableNum, (short) 0);
-		Map<Long, List<MorderItemEntity>> morderItemMap = new HashMap<>();
+	public ApiResponse<List<MorderVo>> findByTableNum(Integer tableNum) {
+		List<MorderVo> voList = morderRepository.findByTableNumAndPayStatus(tableNum, (short) 0);
 
-		morderEntityList.stream().map(morderEntity -> {
-			MorderVo vo = new MorderVo();
-			vo.setCode(morderEntity.getCode());
-			vo.setMorderStatus(morderEntity.getMorderStatus());
-			vo.setTotalPrice(morderEntity.getTotalPrice());
-//			vo.setMorderItem();
-			return vo;
-		}).collect(Collectors.toList());
-		return ApiResponse.error("401", "無此訂單");
+		voList.stream().forEach(vo -> {
+//			if (vo.getCode() != null && !vo.getCode().isEmpty()) {
+			vo.setMorderItem(morderItemRepository.findByMorderCodeToVo(vo.getCode()));
+//			}
+		});
+		return ApiResponse.success(voList);
 	}
 
 }

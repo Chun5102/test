@@ -31,4 +31,11 @@ public class MorderVo {
 		this.morderItem = new ArrayList<>();
 	}
 
+	public MorderVo(String code, String morderStatus, BigDecimal totalPrice) {
+		super();
+		this.code = code;
+		this.morderStatus = morderStatus;
+		this.totalPrice = totalPrice;
+	}
+
 }

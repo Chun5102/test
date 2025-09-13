@@ -1,6 +1,9 @@
 package com.course.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +39,11 @@ public class MorderController {
 	@PostMapping("/delete/{code}")
 	public ApiResponse<String> deleteMorder(@PathVariable String code) {
 		return morderService.deleteMorder(code);
+	}
+
+	@Operation(summary = "搜索訂單(tableNumber)", tags = "訂單")
+	@GetMapping("/select-tableNumber/{tableNumber}")
+	public ApiResponse<List<MorderVo>> findByType(@PathVariable Integer tableNumber) {
+		return morderService.findByTableNum(tableNumber);
 	}
 }
