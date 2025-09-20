@@ -35,7 +35,6 @@ public class MorderService {
 			morderEntity.setCode(vo.getCode());
 			morderEntity.setTableNumber(vo.getTableNumber());
 			morderEntity.setMorderStatus(vo.getMorderStatus());
-			morderEntity.setDate(vo.getDate());
 			morderEntity.setTotalPrice(vo.getTotalPrice());
 			morderEntity.setPaymentStatus(vo.getPaymentStatus());
 

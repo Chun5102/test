@@ -3,6 +3,7 @@ package com.course.entity;
 import java.math.BigDecimal;
 import java.util.Date;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,6 +26,7 @@ public class MorderEntity {
 
 	private String morderStatus;
 
+	@Column(name = "date", insertable = false, updatable = false)
 	private Date date;
 
 	private BigDecimal totalPrice;
