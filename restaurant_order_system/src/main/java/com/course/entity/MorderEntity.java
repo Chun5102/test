@@ -1,6 +1,7 @@
 package com.course.entity;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Date;
 
 import jakarta.persistence.Column;
@@ -27,7 +28,7 @@ public class MorderEntity {
 	private String morderStatus;
 
 	@Column(name = "date", insertable = false, updatable = false)
-	private Date date;
+	private Timestamp date;
 
 	private BigDecimal totalPrice;
 
