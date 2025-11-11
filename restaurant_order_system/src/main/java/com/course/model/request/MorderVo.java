@@ -1,4 +1,4 @@
-package com.course.model;
+package com.course.model.request;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

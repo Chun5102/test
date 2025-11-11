@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.course.entity.MorderEntity;
 import com.course.entity.MorderItemEntity;
-import com.course.model.ApiResponse;
-import com.course.model.MorderVo;
+import com.course.model.request.MorderVo;
+import com.course.model.response.ApiResponse;
 import com.course.repository.MorderItemRepository;
 import com.course.repository.MorderRepository;
 

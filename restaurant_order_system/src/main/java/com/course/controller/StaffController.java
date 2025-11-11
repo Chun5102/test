@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.course.model.ApiResponse;
-import com.course.model.StaffVo;
+import com.course.model.request.StaffVo;
+import com.course.model.response.ApiResponse;
 import com.course.service.StaffService;
 
 import io.swagger.v3.oas.annotations.Operation;

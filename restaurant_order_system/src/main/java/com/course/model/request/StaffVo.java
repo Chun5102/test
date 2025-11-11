@@ -1,4 +1,4 @@
-package com.course.model;
+package com.course.model.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

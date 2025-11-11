@@ -1,4 +1,4 @@
-package com.course.model;
+package com.course.model.response;
 
 import lombok.Data;
 

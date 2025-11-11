@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.course.model.ApiResponse;
-import com.course.model.MorderVo;
+import com.course.model.request.MorderVo;
+import com.course.model.response.ApiResponse;
 import com.course.service.MorderService;
 
 import io.swagger.v3.oas.annotations.Operation;

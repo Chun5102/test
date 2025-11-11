@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 
 import com.course.entity.MenuEntity;
 import com.course.entity.StaffEntity;
-import com.course.model.MenuVo;
-import com.course.model.StaffVo;
+import com.course.model.request.MenuVo;
+import com.course.model.request.StaffVo;
 
 @Service
 public class ServiceHelper {

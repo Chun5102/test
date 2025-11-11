@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.course.entity.MenuEntity;
-import com.course.model.ApiResponse;
-import com.course.model.MenuVo;
+import com.course.model.request.MenuVo;
+import com.course.model.response.ApiResponse;
 import com.course.repository.MenuRepository;
 
 import jakarta.transaction.Transactional;
@@ -50,7 +50,7 @@ public class MenuService {
 
 			menuRepository.save(menuEntity);
 
-			return ApiResponse.success("菜單新增成功");
+			return ApiResponse.success(null);
 		} else {
 			return ApiResponse.error("401", "已有此菜單");
 		}

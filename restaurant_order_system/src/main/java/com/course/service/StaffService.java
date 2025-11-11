@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.course.entity.StaffEntity;
-import com.course.model.ApiResponse;
-import com.course.model.StaffVo;
+import com.course.model.request.StaffVo;
+import com.course.model.response.ApiResponse;
 import com.course.repository.StaffRepository;
 
 import jakarta.transaction.Transactional;
