@@ -4,14 +4,16 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.course.model.request.MenuVo;
+import com.course.model.request.MenuRequest;
 import com.course.model.response.ApiResponse;
 import com.course.service.MenuService;
 
@@ -26,19 +28,19 @@ public class MenuController {
 	private MenuService menuService;
 
 	@Operation(summary = "新增菜單資料", tags = "菜單")
-	@PostMapping("/add")
-	public ApiResponse addMenu(@Valid @ModelAttribute MenuVo vo) throws IOException {
-		return menuService.addMenu(vo);
+	@PostMapping(path = "/addMenu", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ApiResponse addMenu(@Valid @RequestBody MenuRequest req) throws IOException {
+		return menuService.addMenu(req);
 	}
 
 	@Operation(summary = "更新菜單資料", tags = "菜單")
-	@PostMapping("/update")
-	public ApiResponse<String> updateMenu(@ModelAttribute MenuVo vo) throws IOException {
-		return menuService.updateMenu(vo);
+	@PutMapping("/updateMenu/{id}")
+	public ApiResponse updateMenu(@PathVariable("id") Long id, @Valid @RequestBody MenuRequest req) throws IOException {
+		return menuService.updateMenu(req);
 	}
 
 	@Operation(summary = "刪除菜單資料", tags = "菜單")
-	@PostMapping("/delete/{id}")
+	@PutMapping("/delete/{id}")
 	public ApiResponse<String> deleteMenu(@PathVariable Long id) {
 		return menuService.deleteMenu(id);
 	}
