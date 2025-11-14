@@ -1,6 +1,5 @@
 package com.course.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,18 +15,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.course.entity.MenuEntity;
+import com.course.enums.MenuStatus;
 import com.course.model.request.MenuRequest;
 import com.course.model.request.MenuVo;
 import com.course.model.response.ApiResponse;
 import com.course.repository.MenuRepository;
 
-import enums.MenuStatus;
 import jakarta.transaction.Transactional;
 
 @Service
 public class MenuService {
-
-	private static final String UPLOAD_DIR = "/Users/evera/static";
 
 	@Autowired
 	private MenuRepository menuRepository;
@@ -37,27 +34,22 @@ public class MenuService {
 
 	@Transactional
 	public ApiResponse addMenu(MenuRequest req) throws IOException {
-		if (!menuRepository.existsByName(req.getName())) {
 
-			ImageInfo imageInfo = processBase64Image(req.getImageBase64(), req.getImageType());
+		ImageInfo imageInfo = processBase64Image(req.getImageBase64(), req.getImageType());
 
-			MenuEntity menuEntity = MenuEntity.builder()
-					.name(req.getName())
-					.type(req.getType())
-					.price(req.getPrice())
-					.description(req.getDescription())
-					.stock(req.getStock())
-					.status(MenuStatus.ONSALE.getCode())
-					.imageData(imageInfo.imageData())
-					.imageType(imageInfo.imageType())
-					.build();
+		MenuEntity menuEntity = MenuEntity.builder()
+				.name(req.getName())
+				.type(req.getType())
+				.price(req.getPrice())
+				.description(req.getDescription())
+				.stock(req.getStock())
+				.status(MenuStatus.ONSALE.getCode())
+				.imageData(imageInfo.imageData())
+				.imageType(imageInfo.imageType())
+				.build();
 
-			menuRepository.save(menuEntity);
+		menuRepository.save(menuEntity);
 
-			return ApiResponse.success();
-		} else {
-			return ApiResponse.error("401", "已有此菜單");
-		}
 	}
 
 	@Transactional
@@ -86,19 +78,15 @@ public class MenuService {
 		}
 	}
 
-	public ApiResponse<String> deleteMenu(Long id) {
-		Optional<MenuEntity> menuEntityOp = menuRepository.findById(id);
-		if (menuEntityOp.isPresent()) {
-			String filePath = UPLOAD_DIR + "/" + menuEntityOp.get().getImg();
-			File file = new File(filePath);
-			file.delete();
+	public ApiResponse deleteMenu(Long id) {
+		MenuEntity menuEntity = menuRepository.findById(id).orElse(null);
+		if (menuEntity != null) {
 
-			// menuRepository.deleteById(id);
-			MenuEntity menuEntity = menuEntityOp.get();
-			menuEntity.setStatus((short) 4);
+			menuEntity.setStatus(MenuStatus.DELETE.getCode());
+
 			menuRepository.save(menuEntity);
 
-			return ApiResponse.success("菜單刪除成功");
+			return ApiResponse.success();
 		} else {
 			return ApiResponse.error("401", "無此菜單");
 		}

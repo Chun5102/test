@@ -36,11 +36,11 @@ public class MenuController {
 	@Operation(summary = "更新菜單資料", tags = "菜單")
 	@PutMapping("/updateMenu/{id}")
 	public ApiResponse updateMenu(@PathVariable("id") Long id, @Valid @RequestBody MenuRequest req) throws IOException {
-		return menuService.updateMenu(req);
+		return menuService.updateMenu(id, req);
 	}
 
 	@Operation(summary = "刪除菜單資料", tags = "菜單")
-	@PutMapping("/delete/{id}")
+	@PutMapping("/deleteMenu/{id}")
 	public ApiResponse<String> deleteMenu(@PathVariable Long id) {
 		return menuService.deleteMenu(id);
 	}
