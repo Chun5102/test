@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.course.model.request.MenuRequest;
 import com.course.model.response.ApiResponse;
+import com.course.model.response.MenuManageResponse;
 import com.course.service.MenuService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,22 +46,22 @@ public class MenuController {
 		return menuService.deleteMenu(id);
 	}
 
-	@Operation(summary = "搜索菜單(id)", tags = "菜單")
-	@GetMapping("/select/{id}")
-	public ApiResponse<MenuVo> findById(@PathVariable Long id) {
-		return menuService.menuFindById(id);
+	@Operation(summary = "取得編輯菜單(id)", tags = "菜單")
+	@GetMapping("edit/{id}")
+	public ApiResponse<MenuManageResponse> getMenuById(@PathVariable Long id) {
+		return menuService.getMenuById(id);
 	}
 
-	@Operation(summary = "搜索菜單(type)", tags = "菜單")
-	@GetMapping("/select-type/{type}")
-	public ApiResponse<List<MenuVo>> findByType(@PathVariable Short type) {
-		return menuService.menuFindByType(type);
+	@Operation(summary = "取得使用者菜單資料", tags = "菜單")
+	@GetMapping("/getMenus")
+	public ApiResponse<List<MenuManageResponse>> getUserMenu() {
+		return menuService.getUserMenu();
 	}
 
-	@Operation(summary = "搜索菜單(name)", tags = "菜單")
-	@GetMapping("/select-name/{name}")
-	public ApiResponse<List<MenuVo>> findByName(@PathVariable String name) {
-		return menuService.menuFindByName(name);
+	@Operation(summary = "取得管理菜單資料", tags = "菜單")
+	@GetMapping("/getManageMenus")
+	public ApiResponse<List<MenuManageResponse>> getManageMenu() {
+		return menuService.getManageMenu();
 	}
 
 }
