@@ -11,8 +11,11 @@ import com.course.entity.MenuEntity;
 @Repository
 public interface MenuRepository extends JpaRepository<MenuEntity, Long> {
 
-	@Query("SELECT M FROM MenuEntity M WHERE M.category = ?1 AND M.status = 2")
-	Page<MenuEntity> getMenuByCategory(String category, Pageable pageable);
+	@Query("SELECT M FROM MenuEntity M WHERE M.category = ?1 AND M.status = 2 AND M.stock > 0")
+	Page<MenuEntity> getMenuByCategory(Integer category, Pageable pageable);
+
+	@Query("SELECT M FROM MenuEntity M WHERE M.status = 2 AND M.stock > 0")
+	Page<MenuEntity> findAllActive(Pageable pageable);
 
 	boolean existsByName(String name);
 }

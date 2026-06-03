@@ -2,8 +2,6 @@ package com.course.service;
 
 import java.io.IOException;
 import java.util.Base64;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -11,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.course.dao.MenuDao;
 import com.course.entity.MenuEntity;
 import com.course.enums.MenuStatus;
 import com.course.enums.ResultCode;
@@ -18,7 +17,6 @@ import com.course.model.request.MenuRequest;
 import com.course.model.response.ApiResponse;
 import com.course.model.response.MenuManageResponse;
 import com.course.model.response.MenuResponse;
-import com.course.repository.MenuRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -26,11 +24,11 @@ import jakarta.transaction.Transactional;
 public class MenuService {
 
 	@Autowired
-	private MenuRepository menuRepository;
+	private MenuDao menuDao;
 
 	@Transactional
 	public ApiResponse<Object> addMenu(MenuRequest req) throws IOException {
-		boolean isExist = menuRepository.existsByName(req.getName());
+		boolean isExist = menuDao.existsByName(req.getName());
 		if (isExist) {
 			return ApiResponse.error(ResultCode.MENU_IS_EXIST);
 		}
@@ -48,14 +46,18 @@ public class MenuService {
 				.imageType(imageInfo.imageType())
 				.build();
 
-		menuRepository.save(menuEntity);
+		menuDao.addMenu(menuEntity);
 		return ApiResponse.success();
 
 	}
 
 	@Transactional
 	public ApiResponse<Object> updateMenu(Long id, MenuRequest req) throws IOException {
-		MenuEntity menuEntity = menuRepository.findById(id).orElse(null);
+		boolean isExist = menuDao.existsByName(req.getName());
+		if (isExist) {
+			return ApiResponse.error(ResultCode.MENU_IS_EXIST);
+		}
+		MenuEntity menuEntity = menuDao.findById(id);
 		if (menuEntity != null) {
 
 			ImageInfo imageInfo = processBase64Image(req.getImageBase64(), req.getImageType());
@@ -71,7 +73,7 @@ public class MenuService {
 					.imageType(imageInfo.imageType())
 					.build();
 
-			menuRepository.save(updateMenuEntity);
+			menuDao.updateMenu(updateMenuEntity);
 
 			return ApiResponse.success();
 		} else {
@@ -80,12 +82,12 @@ public class MenuService {
 	}
 
 	public ApiResponse<Object> deleteMenu(Long id) {
-		MenuEntity menuEntity = menuRepository.findById(id).orElse(null);
+		MenuEntity menuEntity = menuDao.findById(id);
 		if (menuEntity != null) {
 
 			menuEntity.setStatus(MenuStatus.DELETE.getCode());
 
-			menuRepository.save(menuEntity);
+			menuDao.updateMenu(menuEntity);
 
 			return ApiResponse.success();
 		} else {
@@ -94,21 +96,35 @@ public class MenuService {
 	}
 
 	public ApiResponse<MenuManageResponse> getMenuById(Long id) {
-		MenuEntity menuEntity = menuRepository.findById(id).orElse(null);
+		MenuEntity menuEntity = menuDao.findById(id);
 		if (menuEntity != null) {
 			return ApiResponse.success(menuConvertToManageResponse(menuEntity));
 		}
 		return ApiResponse.error(ResultCode.MENU_NOT_EXIST);
 	}
 
-	public ApiResponse<List<MenuManageResponse>> getManageMenu() {
-		List<MenuManageResponse> menuList = menuRepository.findAll().stream().map((MenuEntity menu) -> {
-			return menuConvertToManageResponse(menu);
-		}).collect(Collectors.toList());
+	public ApiResponse<Page<MenuManageResponse>> getManageMenu(Integer category, Integer page) {
+		Integer pageSize = 10;
+		if (page <= 0) {
+			page = 1;
+		}
+
+		Pageable pageable = PageRequest.of(page - 1, pageSize);
+
+		Page<MenuEntity> result = null;
+
+		if (category == null) {
+			result = menuDao.findAllActive(pageable);
+		} else {
+			result = menuDao.getMenuByCategory(category, pageable);
+		}
+		Page<MenuManageResponse> menuList = result.map(this::menuConvertToManageResponse);
+
 		return ApiResponse.success(menuList);
+
 	}
 
-	public ApiResponse<Page<MenuResponse>> getUserMenu(String category, Integer page) {
+	public ApiResponse<Page<MenuResponse>> getUserMenu(Integer category, Integer page) {
 		Integer pageSize = 6;
 		if (page <= 0) {
 			page = 1;
@@ -116,7 +132,7 @@ public class MenuService {
 			Integer firstPage = 1;
 			Pageable firstpageable = PageRequest.of(firstPage - 1, pageSize);
 
-			Page<MenuEntity> firstPageResult = menuRepository.getMenuByCategory(category, firstpageable);
+			Page<MenuEntity> firstPageResult = menuDao.getMenuByCategory(category, firstpageable);
 			if (firstPageResult.isEmpty()) {
 				return ApiResponse.error(ResultCode.MENU_NOT_EXIST);
 			}
@@ -128,7 +144,7 @@ public class MenuService {
 		}
 
 		Pageable pageable = PageRequest.of(page - 1, pageSize);
-		Page<MenuResponse> menuList = menuRepository.getMenuByCategory(category, pageable)
+		Page<MenuResponse> menuList = menuDao.getMenuByCategory(category, pageable)
 				.map((MenuEntity menu) -> {
 					return menuConvertToResponse(menu);
 				});

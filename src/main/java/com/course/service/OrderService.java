@@ -1,6 +1,7 @@
 package com.course.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,11 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.course.dao.MainOrderDao;
+import com.course.dao.MenuDao;
+import com.course.dao.OrderDao;
+import com.course.dao.OrderItemDao;
+import com.course.dao.TableDao;
 import com.course.entity.MainOrderEntity;
 import com.course.entity.MenuEntity;
 import com.course.entity.OrderEntity;
@@ -19,15 +25,13 @@ import com.course.enums.ResultCode;
 import com.course.model.request.OrderItemRequest;
 import com.course.model.request.OrderRequest;
 import com.course.model.request.OrderUpdateRequest;
+import com.course.model.request.PayOrderRequest;
 import com.course.model.response.ApiResponse;
-import com.course.model.response.OrderItemPreviewResponse;
+import com.course.model.response.MainOrderAggregateResponse;
+import com.course.model.response.MainOrderResponse;
+import com.course.model.response.OrderItemResponse;
 import com.course.model.response.OrderResponse;
 import com.course.model.response.TableOrderResponse;
-import com.course.repository.MainOrderRepository;
-import com.course.repository.MenuRepository;
-import com.course.repository.OrderItemRepository;
-import com.course.repository.OrderRepository;
-import com.course.repository.TableRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -35,18 +39,19 @@ import jakarta.transaction.Transactional;
 public class OrderService {
 
 	@Autowired
-	private MainOrderRepository mainOrderRepository;
-	@Autowired
-	private OrderRepository orderRepository;
+	private MainOrderDao mainOrderDao;
 
 	@Autowired
-	private OrderItemRepository orderItemRepository;
+	private OrderDao orderDao;
 
 	@Autowired
-	private TableRepository tableRepository;
+	private OrderItemDao orderItemDao;
 
 	@Autowired
-	private MenuRepository menuRepository;
+	private TableDao tableDao;
+
+	@Autowired
+	private MenuDao menuDao;
 
 	/*
 	 * 新增訂單
@@ -64,7 +69,7 @@ public class OrderService {
 				.distinct() // 去除重複
 				.toList();
 
-		Map<Long, BigDecimal> priceMap = menuRepository.findAllById(menuIdList).stream()
+		Map<Long, BigDecimal> priceMap = menuDao.findAllById(menuIdList).stream()
 				.collect(Collectors.toMap(MenuEntity::getId, MenuEntity::getPrice));
 
 		// 計算原始總價
@@ -92,14 +97,19 @@ public class OrderService {
 		 * 取得使用中的桌子
 		 * 防止主訂單同時新增
 		 */
-		TableEntity tableEntity = tableRepository.findByIdAndStatus(tableId, "使用中");
+		TableEntity tableEntity = tableDao.findByIdAndStatus(tableId, "使用中");
+
+		if (tableEntity.getOpenedAt() == null) {
+			return ApiResponse.error(ResultCode.TABLE_NOT_OPEN);
+		}
 
 		// 取得未付款主訂單
-		MainOrderEntity mainOrder = mainOrderRepository.getMainOrder(tableId);
+		MainOrderEntity mainOrder = mainOrderDao.getMainOrder(tableId);
 
 		// 建立 builder，必填欄位先設定
 		OrderEntity.OrderEntityBuilder builder = OrderEntity.builder()
 				.totalPrice(calculatedTotalPrice)
+				.tableId(tableId)
 				.orderStatus("待處理")
 				.isActive(true);
 
@@ -107,7 +117,7 @@ public class OrderService {
 			builder.mainOrderCode(mainOrder.getCode());
 			// 累加主訂單總價
 			mainOrder.setTotalPrice(mainOrder.getTotalPrice().add(calculatedTotalPrice));
-			mainOrderRepository.save(mainOrder);
+			mainOrderDao.updateMainOrder(mainOrder);
 		} else {
 			// 建立主訂單
 			String mainOrderCode = UUID.randomUUID().toString();
@@ -120,24 +130,24 @@ public class OrderService {
 					.tableId(tableId)
 					.build();
 
-			mainOrderRepository.save(mainOrder);
+			mainOrderDao.updateMainOrder(mainOrder);
 
 			builder.mainOrderCode(mainOrderCode);
 
 			// 更新桌子狀態
 			tableEntity.setStatus("點餐");
-			tableRepository.save(tableEntity);
+			tableDao.updateTable(tableEntity);
 		}
 
 		// 建立訂單實體並存入資料庫
 		OrderEntity orderEntity = builder.build();
 
-		orderRepository.save(orderEntity);
+		Long orderId = orderDao.addOrder(orderEntity);
 
 		// 訂單細項加入Code後存入資料庫
-		orderItems.forEach(item -> item.setOrderId(orderEntity.getId()));
+		orderItems.forEach(item -> item.setOrderId(orderId));
 
-		orderItemRepository.saveAll(orderItems);
+		orderItemDao.addAllOrderItem(orderItems);
 
 		// 回傳成功
 		return ApiResponse.success();
@@ -149,65 +159,30 @@ public class OrderService {
 	 */
 	@Transactional
 	public ApiResponse<Object> updateOrder(OrderUpdateRequest req) {
-		OrderEntity orderEntity = orderRepository.findById(req.getId()).orElse(null);
+		OrderEntity orderEntity = orderDao.getOrderById(req.getId());
 		if (orderEntity == null) {
 			return ApiResponse.error(ResultCode.ORDER_NOT_EXIST);
 		}
+
+		if (orderEntity.getOrderStatus().equals("已完成") || orderEntity.getOrderStatus().equals("已取消")) {
+			return ApiResponse.error(ResultCode.ORDER_STATUS_INVALID);
+		}
 		orderEntity.setOrderStatus(req.getOrderStatus());
 
-		orderRepository.save(orderEntity);
+		orderDao.updateOrder(orderEntity);
 
-		// if (req.getOrderItem() != null && !req.getOrderItem().isEmpty()) {
-		// List<OrderItemEntity> orderItems =
-		// orderItemRepository.findByOrderCode(req.getCode());
-		// Map<Long, OrderItemEntity> orderItemMap = orderItems.stream()
-		// .collect(Collectors.toMap(OrderItemEntity::getId, item -> item));
-
-		// List<OrderItemEntity> itemsToDelete = orderItems.stream()
-		// .filter(item -> req.getOrderItem().stream()
-		// .filter(reqItem -> reqItem.getId() != null)
-		// .noneMatch(reqItem -> reqItem.getId().equals(item.getId())))
-		// .collect(Collectors.toList());
-		// if (!itemsToDelete.isEmpty()) {
-		// itemsToDelete.forEach(item -> item.setIsActive(false));
-		// orderItemRepository.saveAll(itemsToDelete);
-		// }
-
-		// List<OrderItemEntity> updateOrderItem =
-		// req.getOrderItem().stream().map(item -> {
-		// OrderItemEntity OrderItemEntity;
-		// if (item.getId() != null) {
-		// OrderItemEntity = orderItemMap.get(item.getId());
-		// OrderItemEntity.setQuantity(item.getQuantity());
-		// OrderItemEntity.setSubtotal(item.getSubtotal());
-		// OrderItemEntity.setIsActive(true);
-		// } else {
-		// OrderItemEntity = OrderItemEntity.builder()
-		// .orderCode(req.getCode())
-		// .menuId(item.getMenuId())
-		// .menuName(item.getMenuName())
-		// .quantity(item.getQuantity())
-		// .subtotal(item.getSubtotal())
-		// .isActive(true)
-		// .build();
-		// }
-		// return OrderItemEntity;
-		// }).collect(Collectors.toList());
-
-		// orderItemRepository.saveAll(updateOrderItem);
-		// }
 		return ApiResponse.success("訂單更新成功");
 	}
 
 	@Transactional
 	public ApiResponse<TableOrderResponse> deleteOrder(Long id, Integer tableId) {
 		// 判斷訂單是否存在
-		OrderEntity orderEntity = orderRepository.findById(id).orElse(null);
+		OrderEntity orderEntity = orderDao.getOrderById(id);
 		if (orderEntity == null) {
 			return ApiResponse.error(ResultCode.ORDER_NOT_EXIST);
 		}
 		// 判斷主訂單是否存在
-		MainOrderEntity mainOrder = mainOrderRepository.findByCode(orderEntity.getMainOrderCode());
+		MainOrderEntity mainOrder = mainOrderDao.findByCode(orderEntity.getMainOrderCode());
 
 		if (mainOrder == null) {
 			return ApiResponse.error(ResultCode.MAIN_ORDER_NOT_EXIST);
@@ -220,12 +195,12 @@ public class OrderService {
 
 		// 刪除訂單
 		orderEntity.setIsActive(false);
-		orderRepository.save(orderEntity);
+		orderDao.updateOrder(orderEntity);
 
-		List<OrderItemEntity> orderItemList = orderItemRepository.findByOrderId(id);
+		List<OrderItemEntity> orderItemList = orderItemDao.findByOrderId(id);
 		orderItemList.forEach(item -> item.setIsActive(false));
 
-		orderItemRepository.saveAll(orderItemList);
+		orderItemDao.updateOrderItem(orderItemList);
 
 		// 累加主訂單總價
 		if (mainOrder.getTotalPrice() == null || orderEntity.getTotalPrice() == null) {
@@ -234,22 +209,70 @@ public class OrderService {
 		mainOrder.setTotalPrice(mainOrder.getTotalPrice().subtract(orderEntity.getTotalPrice()));
 
 		// 判斷主訂單是否刪除
-		Boolean hasActiveOrder = orderRepository.existsByMainOrderCodeAndIsActive(mainOrder.getCode(), true);
+		Boolean hasActiveOrder = orderDao.existsByMainOrderIsDelete(mainOrder.getCode(), true);
 		if (!hasActiveOrder) {
 			mainOrder.setIsActive(false);
 
-			TableEntity table = tableRepository.findById(tableId).orElse(null);
+			TableEntity table = tableDao.findById(tableId);
 			table.setStatus("使用中");
-			tableRepository.save(table);
+			tableDao.updateTable(table);
 		}
 
-		mainOrderRepository.save(mainOrder);
+		mainOrderDao.updateMainOrder(mainOrder);
 
 		return getTableNotPayOrder(tableId);
 	}
 
+	@Transactional
+	public ApiResponse<TableOrderResponse> cancelOrder(Long id) {
+		OrderEntity orderEntity = orderDao.getOrderById(id);
+		if (orderEntity == null) {
+			return ApiResponse.error(ResultCode.ORDER_NOT_EXIST);
+		}
+		if (orderEntity.getOrderStatus() != "待處理") {
+			return ApiResponse.error(ResultCode.ORDER_STATUS_INVALID);
+		}
+		orderEntity.setOrderStatus("已取消");
+
+		orderDao.updateOrder(orderEntity);
+
+		MainOrderEntity mainOrder = mainOrderDao.findByCode(orderEntity.getMainOrderCode());
+
+		if (mainOrder.getTotalPrice() == null || orderEntity.getTotalPrice() == null) {
+			return ApiResponse.error(ResultCode.ORDER_DATA_INVALID);
+		}
+		mainOrder.setTotalPrice(mainOrder.getTotalPrice().subtract(orderEntity.getTotalPrice()));
+
+		mainOrderDao.updateMainOrder(mainOrder);
+
+		return getTableNotPayOrder(mainOrder.getTableId());
+	}
+
+	public ApiResponse<Object> payOrder(String mainOrderCode, PayOrderRequest req) {
+		MainOrderEntity mainOrder = mainOrderDao.findByCode(mainOrderCode);
+		if (mainOrder == null) {
+			return ApiResponse.error(ResultCode.MAIN_ORDER_NOT_EXIST);
+		}
+
+		mainOrder.setMainOrderStatus("已完成");
+		mainOrder.setPaymentStatus("已付款");
+		mainOrder.setPaymentMethod(req.getPaymentMethod());
+		mainOrder.setPaidAmount(req.getPaidAmount());
+		mainOrder.setChangeAmount(req.getChangeAmount());
+		mainOrder.setPaidAt(LocalDateTime.now());
+
+		mainOrderDao.updateMainOrder(mainOrder);
+
+		TableEntity table = tableDao.findById(mainOrder.getTableId());
+		table.setStatus("空閒");
+		table.setOpenedAt(null);
+		tableDao.updateTable(table);
+
+		return ApiResponse.success();
+	}
+
 	public ApiResponse<TableOrderResponse> getTableNotPayOrder(Integer tableId) {
-		MainOrderEntity mainOrder = mainOrderRepository.getMainOrder(tableId);
+		MainOrderEntity mainOrder = mainOrderDao.getMainOrder(tableId);
 
 		if (mainOrder == null) {
 			return ApiResponse.error(ResultCode.MAIN_ORDER_NOT_EXIST);
@@ -263,13 +286,13 @@ public class OrderService {
 				.paymentStatus(mainOrder.getPaymentStatus());
 
 		// 取得訂單
-		List<OrderEntity> orderList = orderRepository.findByMainOrderCodeAndIsActive(mainOrder.getCode(), true);
+		List<OrderEntity> orderList = orderDao.getOrderList(mainOrder.getCode(), true);
 
 		// 建立訂單和訂單細項回應
 		List<OrderResponse> orderListRes = orderList.stream().map(order -> {
-			List<OrderItemPreviewResponse> orderItems = orderItemRepository.findTop3ByOrderId(order.getId()).stream()
+			List<OrderItemResponse> orderItems = orderItemDao.getOrderItemPreview(order.getId()).stream()
 					.map(orderItem -> {
-						OrderItemPreviewResponse orderItemRes = OrderItemPreviewResponse.builder()
+						OrderItemResponse orderItemRes = OrderItemResponse.builder()
 								.menuName(orderItem.getMenuName())
 								.quantity(orderItem.getQuantity())
 								.build();
@@ -291,4 +314,182 @@ public class OrderService {
 
 		return ApiResponse.success(tableOrderRes);
 	}
+
+	public ApiResponse<List<MainOrderResponse>> getUnpaidMainOrders() {
+
+		List<MainOrderResponse> mainOrderList = mainOrderDao.getMainOrderByStatus("未付款", true).stream()
+				.filter(mainOrder -> {
+					return !"異常".equals(mainOrder.getMainOrderStatus());
+				})
+				.map(mainOrder -> {
+					return mainOrderConvertToResponse(mainOrder);
+				}).collect(Collectors.toList());
+
+		return ApiResponse.success(mainOrderList);
+	}
+
+	public ApiResponse<List<MainOrderResponse>> getHistoryMainOrders() {
+
+		List<MainOrderResponse> mainOrderList = mainOrderDao.getAllMainOrder().stream()
+				.filter(mainOrder -> {
+					return !mainOrder.getIsActive() ||
+							!"未付款".equals(mainOrder.getPaymentStatus());
+				})
+				.map(mainOrder -> {
+					return mainOrderConvertToResponse(mainOrder);
+				}).collect(Collectors.toList());
+
+		return ApiResponse.success(mainOrderList);
+	}
+
+	public ApiResponse<List<OrderResponse>> getOrdersByMainOrderCode(String mainOrderCode) {
+		List<OrderResponse> orderList = orderDao.getOrdersByMainOrderCode(mainOrderCode).stream()
+				.map(order -> {
+
+					List<OrderItemResponse> orderItems = orderItemDao.getOrderItemByOrderId(order.getId()).stream()
+							.map(orderItem -> {
+								OrderItemResponse orderItemRes = OrderItemResponse.builder()
+										.menuName(orderItem.getMenuName())
+										.quantity(orderItem.getQuantity())
+										.subtotal(orderItem.getSubtotal())
+										.build();
+								return orderItemRes;
+							}).toList();
+
+					OrderResponse orderRes = OrderResponse.builder()
+							.id(order.getId())
+							.createdAt(order.getCreatedAt())
+							.orderStatus(order.getOrderStatus())
+							.totalPrice(order.getTotalPrice())
+							.orderItems(orderItems)
+							.build();
+
+					return orderRes;
+				}).toList();
+
+		return ApiResponse.success(orderList);
+	}
+
+	public ApiResponse<List<MainOrderAggregateResponse>> getUnpaidOrders() {
+
+		List<MainOrderAggregateResponse> mainOrderList = mainOrderDao.getMainOrderByStatus("未付款", true).stream()
+				.filter(mainOrder -> {
+					return !"異常".equals(mainOrder.getMainOrderStatus());
+				})
+				.map(mainOrder -> {
+
+					List<OrderResponse> orderList = orderDao.getOrdersByMainOrderCode(mainOrder.getCode()).stream()
+							.map(order -> {
+
+								List<OrderItemResponse> orderItems = orderItemDao.getOrderItemByOrderId(order.getId())
+										.stream()
+										.map(orderItem -> {
+											OrderItemResponse orderItemRes = OrderItemResponse.builder()
+													.menuName(orderItem.getMenuName())
+													.quantity(orderItem.getQuantity())
+													.subtotal(orderItem.getSubtotal())
+													.build();
+											return orderItemRes;
+										}).toList();
+
+								OrderResponse orderRes = OrderResponse.builder()
+										.id(order.getId())
+										.createdAt(order.getCreatedAt())
+										.orderStatus(order.getOrderStatus())
+										.totalPrice(order.getTotalPrice())
+										.orderItems(orderItems)
+										.build();
+
+								return orderRes;
+							}).toList();
+
+					MainOrderAggregateResponse mainOrderRes = MainOrderAggregateResponse.builder()
+							.code(mainOrder.getCode())
+							.tableId(mainOrder.getTableId())
+							.totalPrice(mainOrder.getTotalPrice())
+							.mainOrderStatus(mainOrder.getMainOrderStatus())
+							.batches(orderList)
+							.build();
+					return mainOrderRes;
+				}).collect(Collectors.toList());
+		return ApiResponse.success(mainOrderList);
+	}
+
+	public ApiResponse<List<OrderResponse>> getKitchenOrders() {
+		List<OrderResponse> orderList = orderDao.getKitchenOrders(List.of("待處理", "準備中")).stream()
+				.map(order -> {
+
+					List<OrderItemResponse> orderItems = orderItemDao.getOrderItemByOrderId(order.getId()).stream()
+							.map(orderItem -> {
+								OrderItemResponse orderItemRes = OrderItemResponse.builder()
+										.menuName(orderItem.getMenuName())
+										.quantity(orderItem.getQuantity())
+										.subtotal(orderItem.getSubtotal())
+										.build();
+								return orderItemRes;
+							}).toList();
+
+					MainOrderEntity mainOrder = mainOrderDao.findByCode(order.getMainOrderCode());
+					OrderResponse orderRes = OrderResponse.builder()
+							.id(order.getId())
+							.tableId(mainOrder.getTableId())
+							.createdAt(order.getCreatedAt())
+							.orderStatus(order.getOrderStatus())
+							.totalPrice(order.getTotalPrice())
+							.orderItems(orderItems)
+							.build();
+
+					return orderRes;
+				}).collect(Collectors.toList());
+
+		return ApiResponse.success(orderList);
+	}
+
+	public ApiResponse<List<OrderResponse>> getRunnerOrders() {
+		List<OrderResponse> orderList = orderDao.getRunnerOrders("待送餐").stream()
+				.map(order -> {
+
+					List<OrderItemResponse> orderItems = orderItemDao.getOrderItemByOrderId(order.getId()).stream()
+							.map(orderItem -> {
+								OrderItemResponse orderItemRes = OrderItemResponse.builder()
+										.menuName(orderItem.getMenuName())
+										.quantity(orderItem.getQuantity())
+										.subtotal(orderItem.getSubtotal())
+										.build();
+								return orderItemRes;
+							}).toList();
+
+					MainOrderEntity mainOrder = mainOrderDao.findByCode(order.getMainOrderCode());
+					OrderResponse orderRes = OrderResponse.builder()
+							.id(order.getId())
+							.tableId(mainOrder.getTableId())
+							.createdAt(order.getCreatedAt())
+							.orderStatus(order.getOrderStatus())
+							.totalPrice(order.getTotalPrice())
+							.orderItems(orderItems)
+							.build();
+
+					return orderRes;
+				}).collect(Collectors.toList());
+
+		return ApiResponse.success(orderList);
+	}
+
+	// 小方法
+	private MainOrderResponse mainOrderConvertToResponse(MainOrderEntity mainOrder) {
+		MainOrderResponse mainOrderRes = MainOrderResponse.builder()
+				.code(mainOrder.getCode())
+				.tableId(mainOrder.getTableId())
+				.totalPrice(mainOrder.getTotalPrice())
+				.mainOrderStatus(mainOrder.getMainOrderStatus())
+				.paymentStatus(mainOrder.getPaymentStatus())
+				.paymentMethod(mainOrder.getPaymentMethod())
+				.paidAmount(mainOrder.getPaidAmount())
+				.changeAmount(mainOrder.getChangeAmount())
+				.paidAt(mainOrder.getPaidAt())
+				.isActive(mainOrder.getIsActive())
+				.build();
+		return mainOrderRes;
+	}
+
 }

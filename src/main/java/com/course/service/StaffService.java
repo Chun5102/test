@@ -1,45 +1,84 @@
 package com.course.service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.course.dao.StaffDao;
 import com.course.entity.StaffEntity;
 import com.course.enums.ResultCode;
+import com.course.model.request.StaffRequest;
+import com.course.model.request.StaffUpdateRequest;
 import com.course.model.response.ApiResponse;
-import com.course.model.vo.StaffVo;
-import com.course.repository.StaffRepository;
+import com.course.model.response.StaffResponse;
+import com.course.utils.JwtUtil;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 
 @Service
 public class StaffService {
 
 	@Autowired
-	private StaffRepository staffRepository;
+	private BCryptPasswordEncoder passwordEncoder;
 
-	public ApiResponse<StaffVo> staffLogin(String username, String password) {
-		StaffEntity staffEntity = staffRepository.findByUsernameAndPassword(username, password);
-		if (staffEntity != null) {
-			return ApiResponse.success(staffConvertToVoNoPassword(staffEntity));
+	@Autowired
+	private StaffDao staffDao;
+
+	@Autowired
+	private JwtUtil jwtUtil;
+
+	public ApiResponse<String> staffLogin(HttpServletResponse response, String username, String password) {
+		StaffEntity staffEntity = staffDao.getStaffDataByUsername(username);
+		if (staffEntity != null
+				&& staffEntity.getIsActive()
+				&& passwordEncoder.matches(password, staffEntity.getPassword())) {
+			String accessToken = jwtUtil.generateAccessToken(staffEntity);
+			String refreshToken = jwtUtil.generateRefreshToken(staffEntity);
+
+			ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+					.httpOnly(true)
+					.secure(false)
+					.path("/")
+					.maxAge(60 * 60 * 24)
+					.sameSite("Lax")
+					.build();
+
+			response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+			return ApiResponse.success(accessToken);
 		} else {
 			return ApiResponse.error(ResultCode.LOGIN_FAIL);
 		}
 	}
 
-	@Transactional
-	public ApiResponse<String> addStaff(StaffVo vo) {
-		if (!staffRepository.existsByUsername(vo.getUsername())) {
-			StaffEntity staffEntity = new StaffEntity();
-			staffEntity.setName(vo.getName());
-			staffEntity.setUsername(vo.getUsername());
-			staffEntity.setPassword(vo.getPassword());
-			staffEntity.setRole(vo.getRole());
+	public ApiResponse<String> staffLogout(HttpServletResponse response) {
+		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
+				.httpOnly(true)
+				.secure(false)
+				.path("/")
+				.maxAge(0)
+				.sameSite("Lax")
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+		return ApiResponse.success("登出成功");
+	}
 
-			staffRepository.save(staffEntity);
+	@Transactional
+	public ApiResponse<String> addStaff(StaffRequest req) {
+		if (!staffDao.existsByUsername(req.getUsername())) {
+			StaffEntity staffEntity = new StaffEntity();
+			staffEntity.setName(req.getName());
+			staffEntity.setUsername(req.getUsername());
+			staffEntity.setPassword(passwordEncoder.encode(req.getPassword()));
+			staffEntity.setRole(req.getRole());
+			staffEntity.setIsActive(true);
+
+			staffDao.addStaff(staffEntity);
 
 			return ApiResponse.success("員工新增成功");
 		} else {
@@ -48,40 +87,46 @@ public class StaffService {
 	}
 
 	@Transactional
-	public ApiResponse<String> updateStaff(StaffVo vo) {
-		Optional<StaffEntity> staffEntityOp = staffRepository.findById(vo.getId());
-		if (staffEntityOp.isPresent()) {
-			StaffEntity staffEntity = staffEntityOp.get();
-			staffEntity.setName(vo.getName());
-			staffEntity.setPassword(vo.getPassword());
-			staffEntity.setRole(vo.getRole());
+	public ApiResponse<String> updateStaff(StaffUpdateRequest req) {
+		StaffEntity staffEntity = staffDao.findById(req.getId());
+		if (staffEntity != null) {
+			staffEntity.setName(req.getName());
+			staffEntity.setRole(req.getRole());
+			if (req.getResetPassword()) {
+				staffEntity.setPassword(passwordEncoder.encode(req.getPassword()));
+			}
 
-			staffRepository.save(staffEntity);
+			staffDao.updateStaff(staffEntity);
 			return ApiResponse.success("員工修改成功");
 		}
 		return ApiResponse.error(ResultCode.STAFF_UPDATE_FAIL);
 	}
 
-	public ApiResponse<String> deleteStaff(Long id) {
-		Optional<StaffEntity> staffEntityOp = staffRepository.findById(id);
+	public ApiResponse<String> toggleStaffActive(Long id) {
+		StaffEntity staffEntity = staffDao.findById(id);
 
-		if (staffEntityOp.isPresent()) {
-			staffRepository.deleteById(id);
-			return ApiResponse.success("員工刪除成功");
-		}
-		return ApiResponse.error(ResultCode.STAFF_DELETE_FAIL);
-	}
+		if (staffEntity != null) {
+			Boolean isActive = staffEntity.getIsActive();
 
-	public ApiResponse<StaffVo> staffFindById(Long id) {
-		Optional<StaffEntity> staffEntityOp = staffRepository.findById(id);
-		if (staffEntityOp.isPresent()) {
-			return ApiResponse.success(staffConvertToVo(staffEntityOp.get()));
+			staffEntity.setIsActive(!isActive);
+
+			staffDao.updateStaff(staffEntity);
+
+			return ApiResponse.success("員工" + (isActive ? "啟用" : "停用") + "成功");
 		}
 		return ApiResponse.error(ResultCode.STAFF_NOT_EXIST);
 	}
 
-	public ApiResponse<List<StaffVo>> staffFindByName(String name) {
-		List<StaffEntity> staffEntityList = staffRepository.findByNameLike("%" + name + "%");
+	public ApiResponse<StaffResponse> getStaffById(Long id) {
+		StaffEntity staffEntity = staffDao.findById(id);
+		if (staffEntity != null) {
+			return ApiResponse.success(staffConvertToVo(staffEntity));
+		}
+		return ApiResponse.error(ResultCode.STAFF_NOT_EXIST);
+	}
+
+	public ApiResponse<List<StaffResponse>> staffFindByName(String name) {
+		List<StaffEntity> staffEntityList = staffDao.findByNameLike("%" + name + "%");
 		if (!staffEntityList.isEmpty()) {
 			return ApiResponse.success(staffEntityList.stream().map(staffEntity -> {
 				return staffConvertToVo(staffEntity);
@@ -90,23 +135,23 @@ public class StaffService {
 		return ApiResponse.error(ResultCode.STAFF_NOT_EXIST);
 	}
 
-	private StaffVo staffConvertToVo(StaffEntity staffEntity) {
-		StaffVo vo = new StaffVo();
-		vo.setId(staffEntity.getId());
-		vo.setName(staffEntity.getName());
-		vo.setUsername(staffEntity.getUsername());
-		vo.setPassword(staffEntity.getPassword());
-		vo.setRole(staffEntity.getRole());
-
-		return vo;
+	public ApiResponse<List<StaffResponse>> getAllStaff() {
+		List<StaffEntity> staffEntityList = staffDao.findAll();
+		if (!staffEntityList.isEmpty()) {
+			return ApiResponse.success(staffEntityList.stream().map(staffEntity -> {
+				return staffConvertToVo(staffEntity);
+			}).collect(Collectors.toList()));
+		}
+		return ApiResponse.error(ResultCode.STAFF_NOT_EXIST);
 	}
 
-	private StaffVo staffConvertToVoNoPassword(StaffEntity staffEntity) {
-		StaffVo vo = new StaffVo();
+	private StaffResponse staffConvertToVo(StaffEntity staffEntity) {
+		StaffResponse vo = new StaffResponse();
 		vo.setId(staffEntity.getId());
 		vo.setName(staffEntity.getName());
 		vo.setUsername(staffEntity.getUsername());
 		vo.setRole(staffEntity.getRole());
+		vo.setIsActive(staffEntity.getIsActive());
 
 		return vo;
 	}

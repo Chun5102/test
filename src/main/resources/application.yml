@@ -18,3 +18,5 @@ spring:
 jwt:
   secretKey: mysecret1efqhid44n6k54cdjb5545lvDnklvD1
   expiration: 14400000
+  accessExpiration: 600000
+  refreshExpiration: 86400000

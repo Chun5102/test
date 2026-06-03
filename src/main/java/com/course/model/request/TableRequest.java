@@ -11,6 +11,6 @@ public class TableRequest {
     @Schema(description = "桌子狀態", example = "空閒")
     private String status;
 
-    @Schema(description = "桌子編號", example = "true")
-    private Boolean isCodeChange;
+    @Schema(description = "是否清除開啟時間", example = "true")
+    private Boolean clearOpenedAt;
 }

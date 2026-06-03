@@ -1,7 +1,6 @@
 package com.course.controller;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -53,22 +52,23 @@ public class MenuController {
 	}
 
 	@Operation(summary = "取得編輯菜單(id)", tags = "菜單")
-	@GetMapping("edit/{id}")
+	@GetMapping("/getMenu/{id}")
 	public ApiResponse<MenuManageResponse> getMenuById(@PathVariable("id") Long id) {
 		return menuService.getMenuById(id);
 	}
 
 	@Operation(summary = "取得使用者菜單資料", tags = "菜單")
 	@GetMapping("/getMenus")
-	public ApiResponse<Page<MenuResponse>> getUserMenu(@RequestParam String category,
+	public ApiResponse<Page<MenuResponse>> getUserMenu(@RequestParam Integer category,
 			@RequestParam Integer page) {
 		return menuService.getUserMenu(category, page);
 	}
 
 	@Operation(summary = "取得管理菜單資料", tags = "菜單")
 	@GetMapping("/getManageMenus")
-	public ApiResponse<List<MenuManageResponse>> getManageMenu() {
-		return menuService.getManageMenu();
+	public ApiResponse<Page<MenuManageResponse>> getManageMenu(@RequestParam(required = false) Integer category,
+			@RequestParam Integer page) {
+		return menuService.getManageMenu(category, page);
 	}
 
 }

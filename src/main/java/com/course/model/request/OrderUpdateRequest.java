@@ -18,16 +18,4 @@ public class OrderUpdateRequest {
 	@Schema(description = "訂單狀態", example = "1")
 	private String orderStatus;
 
-	@NotNull
-	@Schema(description = "訂單付款狀態", example = "1")
-	private String paymentStatus;
-
-	// @NotNull
-	// @Schema(description = "訂單細項")
-	// private List<MorderItemUpdateRequest> morderItem = new ArrayList<>();
-
-	// public MorderUpdateRequest() {
-	// super();
-	// this.morderItem = new ArrayList<>();
-	// }
 }

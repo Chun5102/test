@@ -32,7 +32,6 @@ public class MenuRequest {
     @Schema(description = "菜單庫存", example = "10")
     private Integer stock;
 
-    @NotNull
     @Schema(description = "菜單狀態", example = "0")
     private Integer status;
 

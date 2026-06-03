@@ -8,12 +8,12 @@ import org.springframework.stereotype.Repository;
 import com.course.entity.StaffEntity;
 
 @Repository
-public interface StaffRepository extends JpaRepository<StaffEntity, Long>{
+public interface StaffRepository extends JpaRepository<StaffEntity, Long> {
 
-	StaffEntity findByUsernameAndPassword(String username,String password);
-	
+	StaffEntity findByUsername(String username);
+
 	List<StaffEntity> findByNameLike(String name);
-	
+
 	Boolean existsByUsername(String username);
 
 }

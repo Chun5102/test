@@ -1,6 +1,7 @@
 package com.course.model.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,13 +20,19 @@ public class OrderResponse {
     @Schema(description = "訂單編號", example = "1")
     private Long id;
 
+    @Schema(description = "桌號", example = "1")
+    private Integer tableId;
+
+    @Schema(description = "創建時間", example = "2026-03-27T05:52:42.811878")
+    private LocalDateTime createdAt;
+
     @Schema(description = "訂單總價", example = "ffhgs1ghdhd1f...")
     private BigDecimal totalPrice;
 
     @Schema(description = "訂單狀態", example = "ffhgs1ghdhd1f...")
     private String orderStatus;
 
-    @Schema(description = "訂單細項預覽列表")
+    @Schema(description = "訂單細項列表")
     @Builder.Default
-    private List<OrderItemPreviewResponse> orderItems = new ArrayList<>();
+    private List<OrderItemResponse> orderItems = new ArrayList<>();
 }

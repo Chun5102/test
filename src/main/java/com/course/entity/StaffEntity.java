@@ -36,7 +36,7 @@ public class StaffEntity extends BaseEntity {
 	/**
 	 * 員工帳號
 	 */
-	@Column(name = "username", nullable = false)
+	@Column(name = "username", nullable = false, unique = true)
 	private String username;
 
 	/**
@@ -50,4 +50,10 @@ public class StaffEntity extends BaseEntity {
 	 */
 	@Column(name = "role", nullable = false)
 	private String role;
+
+	/**
+	 * 員工是否刪除
+	 */
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive;
 }

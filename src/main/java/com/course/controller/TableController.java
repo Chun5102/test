@@ -2,15 +2,16 @@ package com.course.controller;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.course.annotation.RequireTableToken;
@@ -39,14 +40,21 @@ public class TableController {
     }
 
     @Operation(summary = "更新桌子資料", tags = "桌子")
-    @PutMapping(path = "/updateTable/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(path = "/updateTable/{id}")
     public ApiResponse<Object> updateTable(@PathVariable("id") Integer id, @Valid @RequestBody TableRequest req)
             throws IOException {
         return tableService.updateTable(id, req);
     }
 
+    @Operation(summary = "更新桌子狀態", tags = "桌子")
+    @PutMapping(path = "/updateTableStatus/{id}")
+    public ApiResponse<Object> updateTableStatus(@PathVariable("id") Integer id, @RequestParam String status)
+            throws IOException {
+        return tableService.updateTableStatus(id, status);
+    }
+
     @Operation(summary = "開桌", tags = "桌子")
-    @PostMapping(path = "/openTable/{code}")
+    @PutMapping(path = "/openTable/{code}")
     public ApiResponse<String> openTable(@PathVariable("code") String code)
             throws IOException {
         return tableService.openTable(code);
@@ -61,11 +69,17 @@ public class TableController {
         return tableService.checkTable(tableId, openedAt);
     }
 
+    @Operation(summary = "取得所有桌子資料", tags = "桌子")
+    @GetMapping(path = "/getAllTable")
+    public ApiResponse<List<TableResponse>> getAllTable() {
+        return tableService.getAllTable();
+    }
+
     @Operation(summary = "取得桌子資料", tags = "桌子")
-    @GetMapping(path = "/getTable/{code}")
-    public ApiResponse<TableResponse> getTable(@PathVariable("code") String code)
+    @GetMapping(path = "/getTableById/{id}")
+    public ApiResponse<TableResponse> getTable(@PathVariable("id") Integer id)
             throws IOException {
-        return tableService.getTable(code);
+        return tableService.getTable(id);
     }
 
     @Operation(summary = "取得桌子狀態", tags = "桌子")

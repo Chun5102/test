@@ -35,7 +35,7 @@ public class TableTokenAspect {
             if (token == null) {
                 throw new JwtException(ResultCode.TABLE_TOKEN_MISSING.name());
             }
-            Claims claims = jwtUtil.validateTableToken(token);
+            Claims claims = jwtUtil.validateToken(token);
             Integer tableId = claims.get("tableId", Integer.class);
             request.setAttribute("tableId", tableId);
 

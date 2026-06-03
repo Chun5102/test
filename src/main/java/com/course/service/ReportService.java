@@ -11,10 +11,10 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.course.dao.MainOrderDao;
+import com.course.dao.OrderItemDao;
 import com.course.entity.MainOrderEntity;
 import com.course.model.dto.OrderItemDto;
-import com.course.repository.MainOrderRepository;
-import com.course.repository.OrderItemRepository;
 import com.course.utils.JasperReportUtil;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,18 +23,18 @@ import jakarta.servlet.http.HttpServletResponse;
 public class ReportService {
 
     @Autowired
-    private MainOrderRepository mainOrderRepository;
+    private MainOrderDao mainOrderDao;
 
     @Autowired
-    private OrderItemRepository orderItemRepository;
+    private OrderItemDao orderItemDao;
 
     public void getReport(String reportType, HttpServletResponse response) throws Exception {
 
-        MainOrderEntity mainOrder = mainOrderRepository.getMainOrder(1);
+        MainOrderEntity mainOrder = mainOrderDao.getMainOrder(1);
 
         HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-        LocalDateTime createAt = mainOrder.getCreateAt();
+        LocalDateTime createAt = mainOrder.getCreatedAt();
         String receiptCreateAt = createAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         // LocalDateTime paidAt = mainOrder.getPaidAt();
         // String receiptpPidAt = paidAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd
@@ -49,7 +49,7 @@ public class ReportService {
         parameters.put("actualPaid", mainOrder.getPaidAmount());
         parameters.put("change", mainOrder.getChangeAmount());
 
-        List<OrderItemDto> orderItems = orderItemRepository.getAllOrderItems(mainOrder.getCode());
+        List<OrderItemDto> orderItems = orderItemDao.getAllOrderItems(mainOrder.getCode());
 
         Map<String, OrderItemDto> mergedMap = new LinkedHashMap<>();
 

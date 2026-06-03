@@ -23,4 +23,6 @@ public interface OrderItemRepository extends JpaRepository<OrderItemEntity, Long
 
 	List<OrderItemEntity> findTop3ByOrderId(Long id);
 
+	List<OrderItemEntity> findAllByOrderId(Long id);
+
 }

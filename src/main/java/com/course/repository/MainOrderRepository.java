@@ -1,5 +1,7 @@
 package com.course.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +22,6 @@ public interface MainOrderRepository extends JpaRepository<MainOrderEntity, Long
             " FROM MainOrderEntity M JOIN OrderEntity O ON M.code = O.mainOrderCode " +
             " WHERE M.tableId = :tableId AND M.isActive = true AND M.paymentStatus = '未付款'")
     TableStatusDto getTableStatus(@Param("tableId") Integer id);
+
+    List<MainOrderEntity> findByPaymentStatusAndIsActive(String paymentStatus, boolean isActive);
 }

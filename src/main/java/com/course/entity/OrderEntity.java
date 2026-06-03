@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +19,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "orders")
+@Table(name = "orders", indexes = {
+		@Index(name = "idx_status_created", columnList = "order_status, created_at")
+})
 public class OrderEntity extends BaseEntity {
 	/**
 	 * 訂單編號
@@ -27,6 +30,12 @@ public class OrderEntity extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id", nullable = false)
 	private Long id;
+
+	/**
+	 * 訂單桌號
+	 */
+	@Column(name = "table_id", nullable = false)
+	private Integer tableId;
 
 	/**
 	 * 訂單總價
