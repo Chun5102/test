@@ -4,5 +4,4 @@
 
 完整專案介紹請參考 Frontend Repository。
 
-Frontend：
-https://github.com/Chun5102/restaurant_order_system_frontend
+[Frontend Repository](https://github.com/Chun5102/restaurant_order_system_frontend)
