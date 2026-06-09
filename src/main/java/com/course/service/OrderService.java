@@ -99,7 +99,7 @@ public class OrderService {
 		 */
 		TableEntity tableEntity = tableDao.findByIdAndStatus(tableId, "使用中");
 
-		if (tableEntity.getOpenedAt() == null) {
+		if (tableEntity != null && tableEntity.getOpenedAt() == null) {
 			return ApiResponse.error(ResultCode.TABLE_NOT_OPEN);
 		}
 
@@ -229,7 +229,8 @@ public class OrderService {
 		if (orderEntity == null) {
 			return ApiResponse.error(ResultCode.ORDER_NOT_EXIST);
 		}
-		if (orderEntity.getOrderStatus() != "待處理") {
+		if (!"待處理".equals(orderEntity.getOrderStatus())) {
+			System.out.println(orderEntity.getOrderStatus());
 			return ApiResponse.error(ResultCode.ORDER_STATUS_INVALID);
 		}
 		orderEntity.setOrderStatus("已取消");
